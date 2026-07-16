@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Letter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    @font-face {
+      font-family: 'JiuzhouZhenshu';
+      src: url('text.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    :root {
+      --ink: #3a352d;
+      --ink-soft: #6b6355;
+      --gold: #b08d57;
+      --gold-faint: rgba(176, 141, 87, 0.35);
+      --paper: #fffdf7;
+      --seal-red: #b3392b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'JiuzhouZhenshu', 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+      color: var(--ink);
+      line-height: 2.2;
+      min-height: 100vh;
+      background: linear-gradient(165deg, #f7f3ea 0%, #f0e9da 55%, #ece3d0 100%);
+      overflow-x: hidden;
+    }
+
+    /* ---------- 背景：窗影 ---------- */
+    /* 午后阳光透过窗棂投在墙上的光斑（SVG 2×3 窗格 + 高斯模糊） */
+    .window-light {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='440'%3E%3Cg fill='%23e9cd94' fill-opacity='0.5'%3E%3Crect x='0' y='0' width='140' height='136' rx='5'/%3E%3Crect x='160' y='0' width='140' height='136' rx='5'/%3E%3Crect x='0' y='152' width='140' height='136' rx='5'/%3E%3Crect x='160' y='152' width='140' height='136' rx='5'/%3E%3Crect x='0' y='304' width='140' height='136' rx='5'/%3E%3Crect x='160' y='304' width='140' height='136' rx='5'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: 100% 100%;
+      filter: blur(9px);
+      transform: var(--tf);
+      animation: lightSway 32s ease-in-out infinite alternate;
+    }
+    .window-light.right {
+      width: 360px; height: 560px;
+      right: -70px; top: 4vh;
+      --tf: skewX(-16deg) rotate(-4deg);
+      opacity: 0.6;
+    }
+    .window-light.left {
+      width: 300px; height: 470px;
+      left: -85px; bottom: 2vh;
+      --tf: skewX(-16deg) rotate(-3deg);
+      opacity: 0.34;
+    }
+    @keyframes lightSway {
+      from { transform: var(--tf) translate(0, 0); }
+      to   { transform: var(--tf) translate(16px, -7px); }
+    }
+    @media (max-width: 900px) {
+      .window-light { display: none; }
+    }
+
+    /* ---------- 光尘：缓慢上浮的微光 ---------- */
+    .mote {
+      position: fixed;
+      bottom: -4vh;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(224, 192, 132, 0.55), rgba(224, 192, 132, 0));
+      pointer-events: none;
+      z-index: 0;
+      animation: drift linear infinite;
+    }
+    @keyframes drift {
+      0%   { transform: translate(0, 0); opacity: 0; }
+      12%  { opacity: 0.7; }
+      88%  { opacity: 0.5; }
+      100% { transform: translate(var(--sway), -108vh); opacity: 0; }
+    }
+
+    /* ---------- 启封页 ---------- */
+    .gate {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px;
+      text-align: center;
+      animation: fadeIn 1.4s ease-out;
+      transition: opacity 0.6s ease;
+    }
+    .gate.leaving { opacity: 0; }
+
+    /* 信封 */
+    .envelope {
+      position: relative;
+      width: 300px; height: 190px;
+      max-width: 84vw;
+      margin-bottom: 44px;
+      perspective: 900px;
+    }
+    .env-back {
+      position: absolute; inset: 0;
+      background: #eee3cc;
+      border-radius: 6px;
+      box-shadow: 0 14px 32px rgba(90, 75, 50, 0.20);
+    }
+    .env-letter {
+      position: absolute;
+      left: 18px; right: 18px; top: 16px; bottom: 26px;
+      background: var(--paper);
+      border: 1px solid #e8dcc2;
+      border-radius: 3px;
+      padding: 18px 20px;
+      z-index: 1;
+      transition: transform 0.9s ease 0.55s;
+    }
+    .env-letter i {
+      display: block;
+      height: 5px;
+      margin-bottom: 12px;
+      background: rgba(176, 141, 87, 0.18);
+      border-radius: 3px;
+    }
+    .env-letter i:nth-child(1) { width: 55%; }
+    .env-letter i:nth-child(2) { width: 88%; }
+    .env-letter i:nth-child(3) { width: 76%; }
+    .env-front {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, #f0e7d2, #e7dbc0);
+      clip-path: polygon(0 0, 50% 48%, 100% 0, 100% 100%, 0 100%);
+      border-radius: 6px;
+      z-index: 2;
+    }
+    .env-flap {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 52%;
+      background: linear-gradient(180deg, #eadfc6, #dfd1af);
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+      border-radius: 6px 6px 0 0;
+      transform-origin: top center;
+      transition: transform 0.85s ease 0.1s;
+      z-index: 3;
+    }
+    .env-seal {
+      position: absolute;
+      left: 50%; top: 52%;
+      transform: translate(-50%, -50%);
+      width: 58px; height: 58px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #d2b483, #ab8750);
+      color: #fdf8ec;
+      font-size: 1.5rem;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 12px rgba(120, 90, 40, 0.35), inset 0 0 0 2px rgba(253, 248, 236, 0.35);
+      z-index: 4;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      animation: breathe 4s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { box-shadow: 0 3px 12px rgba(120, 90, 40, 0.35), inset 0 0 0 2px rgba(253, 248, 236, 0.35); }
+      50% { box-shadow: 0 3px 22px rgba(201, 168, 106, 0.6), inset 0 0 0 2px rgba(253, 248, 236, 0.35); }
+    }
+    .envelope.opening .env-seal { opacity: 0; transform: translate(-50%, -50%) scale(0.55); animation: none; }
+    .envelope.opening .env-flap { transform: rotateX(176deg); z-index: 1; }
+    .envelope.opening .env-letter { transform: translateY(-52px); }
+    .envelope.shake { animation: shake 0.5s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-9px); }
+      40% { transform: translateX(9px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .gate h2 {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 2.1rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+      margin-bottom: 44px;
+      position: relative;
+      display: inline-block;
+    }
+    .gate h2::before,
+    .gate h2::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 26px; height: 1px;
+      background: var(--gold-faint);
+    }
+    .gate h2::before { right: 100%; margin-right: 16px; }
+    .gate h2::after { left: 100%; margin-left: 16px; }
+    .gate input {
+      font-family: inherit;
+      font-size: 1.05rem;
+      width: 260px; max-width: 78vw;
+      padding: 10px 4px;
+      text-align: center;
+      letter-spacing: 0.25em;
+      color: var(--ink);
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #c8bda6;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .gate input::placeholder { color: #b3a88f; letter-spacing: 0.1em; font-size: 0.92rem; }
+    .gate input:focus { border-bottom-color: var(--gold); }
+    .gate button {
+      margin-top: 32px;
+      font-family: inherit;
+      font-size: 1.05rem;
+      letter-spacing: 0.5em;
+      text-indent: 0.5em;
+      color: var(--gold);
+      background: transparent;
+      border: 1px solid var(--gold);
+      border-radius: 2px;
+      padding: 10px 38px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .gate button:hover { background: var(--gold); color: #fdfaf2; }
+    .gate button:disabled { opacity: 0.5; cursor: wait; }
+    .gate .hint {
+      margin-top: 18px;
+      min-height: 1.6em;
+      font-size: 0.9rem;
+      color: #a4593f;
+      letter-spacing: 0.1em;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- 信纸 ---------- */
+    .container {
+      display: none;
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 56px auto 80px;
+      padding: 76px 88px 68px;
+      background: var(--paper);
+      border: 1px solid #e8e0cd;
+      border-radius: 3px;
+      box-shadow: 0 18px 45px rgba(90, 75, 50, 0.13);
+      animation: fadeIn 1.2s ease-out;
+      overflow: hidden;
+    }
+    /* 右上角斜照进来的一束光 */
+    .container::before {
+      content: '';
+      position: absolute;
+      top: -140px; right: -120px;
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(233, 205, 148, 0.28), rgba(233, 205, 148, 0) 65%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    /* 细双线信笺框 */
+    .container::after {
+      content: '';
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(176, 141, 87, 0.30);
+      outline: 1px solid rgba(176, 141, 87, 0.14);
+      outline-offset: 4px;
+      border-radius: 1px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    /* 四角金色角饰 */
+    .corner {
+      position: absolute;
+      width: 16px; height: 16px;
+      border-color: var(--gold);
+      border-style: solid;
+      border-width: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.75;
+    }
+    .corner.tl { top: 12px; left: 12px; border-top-width: 2px; border-left-width: 2px; }
+    .corner.tr { top: 12px; right: 12px; border-top-width: 2px; border-right-width: 2px; }
+    .corner.bl { bottom: 12px; left: 12px; border-bottom-width: 2px; border-left-width: 2px; }
+    .corner.br { bottom: 12px; right: 12px; border-bottom-width: 2px; border-right-width: 2px; }
+    /* 纸张颗粒 */
+    .grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+    }
+
+    #letterBox {
+      position: relative;
+      z-index: 2;
+      /* 极淡的信纸横线 */
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 38px,
+        rgba(176, 141, 87, 0.07) 38px,
+        rgba(176, 141, 87, 0.07) 39px
+      );
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 46px;
+      opacity: 0;
+      filter: blur(3px);
+      animation: headerIn 0.9s ease forwards;
+      animation-delay: 0.1s;
+    }
+    @keyframes headerIn {
+      from { opacity: 0; filter: blur(3px); transform: translateY(6px); }
+      to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+    }
+    .header h1 {
+      font-size: 2.3rem;
+      font-weight: 500;
+      letter-spacing: 0.5em;
+      text-indent: 0.5em;
+      color: var(--ink);
+    }
+    .rule {
+      width: 52px; height: 1px;
+      margin: 20px auto 0;
+      background: var(--gold);
+      position: relative;
+    }
+    .rule::before, .rule::after {
+      content: '';
+      position: absolute;
+      top: -1.5px;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    .rule::before { left: -10px; }
+    .rule::after { right: -10px; }
+
+    .salutation {
+      font-size: 1.16rem;
+      margin-bottom: 1.5em;
+    }
+    .paragraph {
+      font-size: 1.12rem;
+      text-indent: 2em;
+      text-align: justify;
+      margin-bottom: 1.5em;
+    }
+
+    /* 落墨式逐字显现：模糊墨晕收拢为清晰笔画 */
+    .ink-char {
+      opacity: 0;
+      animation: inkBloom 0.6s ease-out forwards;
+    }
+    @keyframes inkBloom {
+      0%   { opacity: 0; filter: blur(4px); text-shadow: 0 0 8px rgba(58, 53, 45, 0.45); }
+      55%  { opacity: 0.85; filter: blur(1.2px); text-shadow: 0 0 3px rgba(58, 53, 45, 0.3); }
+      100% { opacity: 1; filter: blur(0); text-shadow: 0 0 0 rgba(58, 53, 45, 0); }
+    }
+    /* 点击信纸任意处，跳过逐字动画直接显示全文 */
+    #letterBox.instant .ink-char {
+      animation: none !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
+    .signature {
+      margin-top: 56px;
+      text-align: right;
+      color: var(--ink-soft);
+      line-height: 2.1;
+      font-size: 1.06rem;
+    }
+    .signature .name {
+      font-size: 1.28rem;
+      color: var(--ink);
+      letter-spacing: 0.15em;
+    }
+    .signature .date { font-size: 1rem; }
+
+    /* ---------- 音乐按钮 ---------- */
+    .music-btn {
+      display: none;
+      position: fixed;
+      bottom: 28px; right: 28px;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      border: 1px solid var(--gold);
+      background: rgba(255, 253, 247, 0.85);
+      color: var(--gold);
+      font-size: 1.1rem;
+      cursor: pointer;
+      align-items: center; justify-content: center;
+      z-index: 10;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(3px);
+    }
+    .music-btn:hover { background: var(--gold); color: #fdfaf2; }
+    .music-btn.playing .icon { animation: sway 2.6s ease-in-out infinite; display: inline-block; }
+    @keyframes sway {
+      0%, 100% { transform: rotate(0deg); }
+      30% { transform: rotate(-12deg); }
+      70% { transform: rotate(12deg); }
+    }
+
+    @media (max-width: 768px) {
+      .container { margin: 24px 14px 60px; padding: 52px 26px 46px; }
+      .header h1 { font-size: 1.75rem; }
+      .paragraph { font-size: 1.05rem; }
+      .gate h2 { font-size: 1.4rem; }
+      .envelope { height: 170px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="window-light right"></div>
+<div class="window-light left"></div>
+
+<!-- 启封页 -->
+<div class="gate" id="gate">
+  <div class="envelope" id="envelope">
+    <div class="env-back"></div>
+    <div class="env-letter"><i></i><i></i><i></i></div>
+    <div class="env-front"></div>
+    <div class="env-flap"></div>
+    <div class="env-seal"></div>
+  </div>
+  <h2>A Letter</h2>
+  <input type="password" id="pwInput" placeholder="请输入访问密码" autocomplete="off">
+  <button id="unlockBtn">启 封</button>
+  <p class="hint" id="hint"></p>
+</div>
+
+<!-- 信纸：正文由解密后动态注入 #letterBox，源码中不存在明文 -->
+<div class="container" id="letterWrap">
+  <div class="grain"></div>
+  <span class="corner tl"></span><span class="corner tr"></span>
+  <span class="corner bl"></span><span class="corner br"></span>
+  <div id="letterBox"></div>
+</div>
+
+<audio id="bgMusic" loop>
+  <source src="bg.flac" type="audio/flac">
+  <source src="bg.mp3" type="audio/mpeg">
+  <source src="bg.ogg" type="audio/ogg">
+</audio>
+
+<button id="musicBtn" class="music-btn" title="播放 / 暂停音乐">
+  <span class="icon">♪</span>
+</button>
+
+<script>
+  // ==================== 加密内容 ====================
+  // 格式: salt.iv.ciphertext（均为 base64）
+  // 密码不在源码中；密码即解密密钥，输错则数学上无法还原内容
+  const ENCRYPTED = "S93k+XsgjWrhlfF9qVsigQ==.Fc7lHATSmKaQv/H7.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";
+  // =================================================
+
+  const b64ToBuf = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+  async function decrypt(password) {
+    const [saltB64, ivB64, ctB64] = ENCRYPTED.split('.');
+    const salt = b64ToBuf(saltB64);
+    const iv = b64ToBuf(ivB64);
+    const ct = b64ToBuf(ctB64);
+
+    const baseKey = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false, ['decrypt']
+    );
+    // 密码错误时 AES-GCM 校验失败，这里会抛出异常
+    const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(plainBuf);
+  }
+
+  // ---------- 光尘 ----------
+  (function makeMotes() {
+    for (let i = 0; i < 14; i++) {
+      const m = document.createElement('div');
+      m.className = 'mote';
+      const size = 3 + Math.random() * 6;
+      m.style.width = m.style.height = size + 'px';
+      m.style.left = Math.random() * 100 + 'vw';
+      m.style.setProperty('--sway', (Math.random() * 80 - 40) + 'px');
+      m.style.animationDuration = (16 + Math.random() * 18) + 's';
+      m.style.animationDelay = (-Math.random() * 30) + 's';
+      document.body.appendChild(m);
+    }
+  })();
+
+  // ---------- 落墨式逐字显现 ----------
+  function scheduleInk(container) {
+    const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter)
+      ? new Intl.Segmenter('zh', { granularity: 'grapheme' })
+      : null;
+    const graphemes = text => segmenter
+      ? Array.from(segmenter.segment(text), s => s.segment)
+      : Array.from(text);
+
+    const heavyPunct = /[。！？—]/;
+    const lightPunct = /[，、；：]/;
+    const rand = (a, b) => a + Math.random() * (b - a);
+
+    let t = 300;
+    container.querySelectorAll('.salutation, .paragraph, .signature p').forEach(el => {
+      const chars = graphemes(el.textContent);
+      el.textContent = '';
+      chars.forEach(ch => {
+        const span = document.createElement('span');
+        span.className = 'ink-char';
+        span.textContent = ch;
+        span.style.animationDelay = t + 'ms';
+        el.appendChild(span);
+
+        t += rand(30, 62);
+        if (heavyPunct.test(ch)) t += rand(260, 420);
+        else if (lightPunct.test(ch)) t += rand(110, 190);
+      });
+      t += rand(480, 640);
+    });
+  }
+
+  const gate = document.getElementById('gate');
+  const envelope = document.getElementById('envelope');
+  const pwInput = document.getElementById('pwInput');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const hint = document.getElementById('hint');
+  const letterWrap = document.getElementById('letterWrap');
+  const letterBox = document.getElementById('letterBox');
+  const audio = document.getElementById('bgMusic');
+  const musicBtn = document.getElementById('musicBtn');
+  let isPlaying = false;
+
+  function setMusicState(playing) {
+    isPlaying = playing;
+    musicBtn.classList.toggle('playing', playing);
+    musicBtn.title = playing ? '暂停音乐' : '播放音乐';
+  }
+
+  async function tryUnlock() {
+    const pw = pwInput.value.trim();
+    if (!pw) { hint.textContent = '请输入密码'; return; }
+    unlockBtn.disabled = true;
+    hint.textContent = '';
+    try {
+      const html = await decrypt(pw);
+
+      // 音乐随启封开始（借助本次点击的用户交互）
+      audio.volume = 0.3;
+      audio.play().then(() => setMusicState(true)).catch(() => setMusicState(false));
+
+      // 信封启封动画 → 过渡到信纸
+      envelope.classList.add('opening');
+      setTimeout(() => gate.classList.add('leaving'), 1100);
+      setTimeout(() => {
+        gate.style.display = 'none';
+        letterBox.innerHTML = html;
+        letterWrap.style.display = 'block';
+        musicBtn.style.display = 'flex';
+        document.title = letterBox.querySelector('h1')?.textContent || document.title;
+
+        scheduleInk(letterBox);
+      }, 1750);
+    } catch (e) {
+      hint.textContent = '密码不对，请再试试';
+      envelope.classList.remove('shake');
+      void envelope.offsetWidth; // 重新触发抖动动画
+      envelope.classList.add('shake');
+      pwInput.select();
+      unlockBtn.disabled = false;
+    }
+  }
+
+  unlockBtn.addEventListener('click', tryUnlock);
+  pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+
+  // 点击信纸任意处，跳过逐字落墨，直接显示全文
+  letterWrap.addEventListener('click', () => {
+    letterBox.classList.add('instant');
+  });
+
+  musicBtn.addEventListener('click', () => {
+    if (isPlaying) {
+      audio.pause();
+      setMusicState(false);
+    } else {
+      audio.play().then(() => setMusicState(true)).catch(() => {
+        musicBtn.title = '播放失败：请确认音乐已放入本文件夹';
+      });
+    }
+  });
+</script>
+</body>
+</html>
